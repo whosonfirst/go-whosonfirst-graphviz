@@ -124,6 +124,22 @@ func main() {
 			return errors.New(msg)
 		}
 
+		d, err := whosonfirst.IsDeprecated(f)
+
+		if err != nil {
+			return err
+		}
+
+		if d.IsTrue() && d.IsKnown() {
+		   return nil
+		}
+		
+		/*
+		if whosonfirst.IsCeased(f){
+			return nil
+		}
+		*/
+		
 		placetype := whosonfirst.Placetype(f)
 
 		if to_exclude.Contains(placetype) {
