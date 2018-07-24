@@ -28,17 +28,16 @@ import (
 func label(f geojson.Feature) string {
 
 	name := whosonfirst.Name(f)
+	placetype := whosonfirst.Placetype(f)
 	wofid := whosonfirst.Id(f)
-
-	str_label := fmt.Sprintf("\"%s (%d)\"", name, wofid)
 
 	rsp := gjson.GetBytes(f.Bytes(), "properties.wof:label")
 
 	if rsp.Exists() {
-
-		 str_label = fmt.Sprintf("\"%s (%d)\"", rsp.String(), wofid)
+		name = rsp.String()
 	}
 
+	str_label := fmt.Sprintf("\"%s, %s / %d\"", name, placetype, wofid)
 	return str_label
 }
 
@@ -70,6 +69,9 @@ func main() {
 	var to_exclude flags.MultiString
 	flag.Var(&to_exclude, "exclude", "One or more placetypes to exclude")
 
+	var superseded_by = flag.Bool("superseded_by", false, "")
+	var supersedes = flag.Bool("supersedes", false, "")
+
 	var mode = flag.String("mode", "repo", "")
 
 	flag.Parse()
@@ -87,7 +89,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	mu := new(sync.RWMutex)
 
 	var r reader.Reader
@@ -128,9 +130,48 @@ func main() {
 		mu.Lock()
 		defer mu.Unlock()
 
-		parent_id := whosonfirst.ParentId(f)
-
 		f_label := label(f)
+		graph.AddNode("G", f_label, nil)
+
+		if *superseded_by {
+
+			for _, other_id := range whosonfirst.SupersededBy(f) {
+
+				other_label := strconv.FormatInt(other_id, 10)
+				other, err := parent(r, other_id)
+
+				if err != nil {
+					log.Printf("failed to load record for %d, %s\n", other_id, err)
+				} else {
+
+					other_label = label(other)
+
+					graph.AddNode("G", other_label, nil)
+					graph.AddEdge(f_label, other_label, true, nil)
+				}
+			}
+		}
+
+		if *supersedes {
+
+			for _, other_id := range whosonfirst.Supersedes(f) {
+
+				other_label := strconv.FormatInt(other_id, 10)
+				other, err := parent(r, other_id)
+
+				if err != nil {
+					log.Printf("failed to load record for %d, %s\n", other_id, err)
+				} else {
+
+					other_label = label(other)
+
+					graph.AddNode("G", other_label, nil)
+					graph.AddEdge(other_label, f_label, true, nil)
+				}
+			}
+		}
+
+		parent_id := whosonfirst.ParentId(f)
 		p_label := strconv.FormatInt(parent_id, 10)
 
 		p, err := parent(r, parent_id)
@@ -147,7 +188,6 @@ func main() {
 			*/
 		}
 
-		graph.AddNode("G", f_label, nil)
 		graph.AddNode("G", p_label, nil)
 		graph.AddEdge(f_label, p_label, true, nil)
 
