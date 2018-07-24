@@ -6,13 +6,14 @@ import (
 	"flag"
 	"fmt"
 	"github.com/awalterschulze/gographviz"
+	"github.com/whosonfirst/go-whosonfirst-cli/flags"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-index/utils"
-	"github.com/whosonfirst/go-whosonfirst-readwrite/reader"	
 	fs_reader "github.com/whosonfirst/go-whosonfirst-readwrite-fs/reader"
+	"github.com/whosonfirst/go-whosonfirst-readwrite/reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/warning"
 	"io"
@@ -55,6 +56,9 @@ func parent(r reader.Reader, id int64) (geojson.Feature, error) {
 }
 
 func main() {
+
+	var to_exclude flags.MultiString
+	flag.Var(&to_exclude, "exclude", "One or more placetypes to exclude")
 
 	var mode = flag.String("mode", "repo", "")
 
@@ -105,9 +109,16 @@ func main() {
 			return errors.New(msg)
 		}
 
-		parent_id := whosonfirst.ParentId(f)
-
 		placetype := whosonfirst.Placetype(f)
+
+		if to_exclude.Contains(placetype) {
+			return nil
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		parent_id := whosonfirst.ParentId(f)
 
 		f_label := label(f)
 		p_label := strconv.FormatInt(parent_id, 10)
@@ -119,21 +130,21 @@ func main() {
 		} else {
 			p_label = label(p)
 
-			p_placetype := whosonfirst.Placetype(p)
-
-			graph.AddNode("G", p_placetype, nil)
-			graph.AddEdge(p_label, p_placetype, true, nil)			
+			/*
+				p_placetype := whosonfirst.Placetype(p)
+				graph.AddNode("G", p_placetype, nil)
+				graph.AddEdge(p_label, p_placetype, true, nil)
+			*/
 		}
-
-		mu.Lock()
-		defer mu.Unlock()
 
 		graph.AddNode("G", f_label, nil)
 		graph.AddNode("G", p_label, nil)
 		graph.AddEdge(f_label, p_label, true, nil)
 
-		graph.AddNode("G", placetype, nil)
-		graph.AddEdge(f_label, placetype, true, nil)
+		/*
+			graph.AddNode("G", placetype, nil)
+			graph.AddEdge(f_label, placetype, true, nil)
+		*/
 
 		return nil
 	}
