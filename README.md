@@ -47,8 +47,7 @@ Which produces a 112MB PNG file, that is 65,000 pixels on one side, so here's th
 dot -Kfdp -Tsvg bernal.dot -obernal.png ; open bernal.png
 ```
 
-![](images/20180724-bernal.png)
-
+![](docs/images/20180724-bernal.png)
 
 As of this writing, the following records are not included:
 
