@@ -10,17 +10,27 @@ make bin
 
 All of this package's dependencies are bundled with the code in the `vendor` directory.
 
-## graphviz
+## Tools
 
-### layouts
-
-Copy/pasted from the docs
+### wof-graph
 
 ```
-...
-```
+./bin/wof-graph -h
+Usage of ./bin/wof-graph:
+  -belongs-to value
+    	One or more WOF ID that a record should belong to
+  -exclude value
+    	One or more placetypes to exclude
+  -mode string
+    	Currently only '-mode repo' is supported (default "repo")
+  -superseded_by
+    	Include superseded_by relationships
+  -supersedes
+    	Include supersedes relationships
+```	
 
 ## See also
 
 * https://github.com/awalterschulze/gographviz
+* https://www.graphviz.org/doc/info/command.html
 * https://graphs.grevian.org/example

@@ -69,10 +69,13 @@ func main() {
 	var to_exclude flags.MultiString
 	flag.Var(&to_exclude, "exclude", "One or more placetypes to exclude")
 
-	var superseded_by = flag.Bool("superseded_by", false, "")
-	var supersedes = flag.Bool("supersedes", false, "")
+	var belongs_to flags.MultiInt64
+	flag.Var(&belongs_to, "belongs-to", "One or more WOF ID that a record should belong to")
 
-	var mode = flag.String("mode", "repo", "")
+	var superseded_by = flag.Bool("superseded_by", false, "Include superseded_by relationships")
+	var supersedes = flag.Bool("supersedes", false, "Include supersedes relationships")
+
+	var mode = flag.String("mode", "repo", "Currently only '-mode repo' is supported")
 
 	flag.Parse()
 
@@ -125,6 +128,23 @@ func main() {
 
 		if to_exclude.Contains(placetype) {
 			return nil
+		}
+
+		if len(belongs_to) > 0 {
+
+			skip := true
+
+			for _, id := range belongs_to {
+
+				if whosonfirst.IsBelongsTo(f, id) {
+					skip = false
+					break
+				}
+			}
+
+			if skip == true {
+				return nil
+			}
 		}
 
 		mu.Lock()
