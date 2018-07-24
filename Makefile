@@ -38,3 +38,7 @@ fmt:
 bin: 	self
 	rm -rf bin/*
 	@GOPATH=$(GOPATH) go build -o bin/wof-graph cmd/wof-graph.go
+
+belongsto:
+	./bin/wof-graph -belongs-to $(ID) /usr/local/data/sfomuseum-data-architecture > $(ID).dot
+	dot -Tpng $(ID).dot -o$(ID).png ; open $(ID).png

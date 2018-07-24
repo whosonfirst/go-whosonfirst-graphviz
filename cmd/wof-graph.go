@@ -20,7 +20,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"strconv"
 	"sync"
 )
@@ -64,6 +63,58 @@ func parent(r reader.Reader, id int64) (geojson.Feature, error) {
 	return f, nil
 }
 
+func foo(graph *gographviz.Graph, f geojson.Feature, r reader.Reader, recursive bool) {
+
+	f_label := label(f)
+
+	for _, other_id := range whosonfirst.SupersededBy(f) {
+
+		other_label := strconv.FormatInt(other_id, 10)
+		other, err := parent(r, other_id)
+
+		if err != nil {
+			log.Printf("failed to load record for %d, %s\n", other_id, err)
+			continue
+		}
+
+		other_label = label(other)
+
+		graph.AddNode("G", other_label, nil)
+		graph.AddEdge(f_label, other_label, true, nil)
+
+		if recursive {
+			foo(graph, other, r, recursive)
+		}
+	}
+
+}
+
+func bar(graph *gographviz.Graph, f geojson.Feature, r reader.Reader, recursive bool) {
+
+	f_label := label(f)
+
+	for _, other_id := range whosonfirst.Supersedes(f) {
+
+		other_label := strconv.FormatInt(other_id, 10)
+		other, err := parent(r, other_id)
+
+		if err != nil {
+			log.Printf("failed to load record for %d, %s\n", other_id, err)
+			continue
+		}
+
+		other_label = label(other)
+
+		graph.AddNode("G", other_label, nil)
+		graph.AddEdge(other_label, f_label, true, nil)
+
+		if recursive {
+			bar(graph, other, r, recursive)
+		}
+	}
+
+}
+
 func main() {
 
 	var to_exclude flags.MultiString
@@ -74,6 +125,11 @@ func main() {
 
 	var superseded_by = flag.Bool("superseded_by", false, "Include superseded_by relationships")
 	var supersedes = flag.Bool("supersedes", false, "Include supersedes relationships")
+
+	var recursive = flag.Bool("recursive", false, "...")
+
+	// var reader = flag.String("reader", "fs", "...")
+	var dsn = flag.String("reader-dsn", "", "...")
 
 	var mode = flag.String("mode", "repo", "Currently only '-mode repo' is supported")
 
@@ -131,15 +187,15 @@ func main() {
 		}
 
 		if d.IsTrue() && d.IsKnown() {
-		   return nil
-		}
-		
-		/*
-		if whosonfirst.IsCeased(f){
 			return nil
 		}
+
+		/*
+			if whosonfirst.IsCeased(f){
+				return nil
+			}
 		*/
-		
+
 		placetype := whosonfirst.Placetype(f)
 
 		if to_exclude.Contains(placetype) {
@@ -170,41 +226,11 @@ func main() {
 		graph.AddNode("G", f_label, nil)
 
 		if *superseded_by {
-
-			for _, other_id := range whosonfirst.SupersededBy(f) {
-
-				other_label := strconv.FormatInt(other_id, 10)
-				other, err := parent(r, other_id)
-
-				if err != nil {
-					log.Printf("failed to load record for %d, %s\n", other_id, err)
-				} else {
-
-					other_label = label(other)
-
-					graph.AddNode("G", other_label, nil)
-					graph.AddEdge(f_label, other_label, true, nil)
-				}
-			}
+			foo(graph, f, r, *recursive)
 		}
 
 		if *supersedes {
-
-			for _, other_id := range whosonfirst.Supersedes(f) {
-
-				other_label := strconv.FormatInt(other_id, 10)
-				other, err := parent(r, other_id)
-
-				if err != nil {
-					log.Printf("failed to load record for %d, %s\n", other_id, err)
-				} else {
-
-					other_label = label(other)
-
-					graph.AddNode("G", other_label, nil)
-					graph.AddEdge(other_label, f_label, true, nil)
-				}
-			}
+			bar(graph, f, r, *recursive)
 		}
 
 		parent_id := whosonfirst.ParentId(f)
@@ -235,10 +261,6 @@ func main() {
 		return nil
 	}
 
-	if *mode != "repo" {
-		log.Fatal("Only -mode repo is supported right now, sorry.")
-	}
-
 	i, err := index.NewIndexer(*mode, cb)
 
 	if err != nil {
@@ -247,9 +269,7 @@ func main() {
 
 	for _, path := range flag.Args() {
 
-		data := filepath.Join(path, "data")
-
-		rr, err := fs_reader.NewFSReader(data)
+		rr, err := fs_reader.NewFSReader(*dsn)
 
 		if err != nil {
 			log.Fatal(err)
