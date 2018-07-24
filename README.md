@@ -49,6 +49,7 @@ dot -Kfdp -Tsvg bernal.dot -obernal.png ; open bernal.png
 
 ![](images/20180724-bernal.png)
 
+
 As of this writing, the following records are not included:
 
 * Alt files
