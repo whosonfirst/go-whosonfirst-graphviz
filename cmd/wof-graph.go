@@ -40,7 +40,7 @@ func label(f geojson.Feature) string {
 	return str_label
 }
 
-func parent(r reader.Reader, id int64) (geojson.Feature, error) {
+func load(r reader.Reader, id int64) (geojson.Feature, error) {
 
 	rel_path, err := uri.Id2RelPath(id)
 
@@ -63,14 +63,14 @@ func parent(r reader.Reader, id int64) (geojson.Feature, error) {
 	return f, nil
 }
 
-func foo(graph *gographviz.Graph, f geojson.Feature, r reader.Reader, recursive bool) {
+func apply_superseded_by(graph *gographviz.Graph, f geojson.Feature, r reader.Reader, recursive bool) {
 
 	f_label := label(f)
 
 	for _, other_id := range whosonfirst.SupersededBy(f) {
 
 		other_label := strconv.FormatInt(other_id, 10)
-		other, err := parent(r, other_id)
+		other, err := load(r, other_id)
 
 		if err != nil {
 			log.Printf("failed to load record for %d, %s\n", other_id, err)
@@ -83,20 +83,20 @@ func foo(graph *gographviz.Graph, f geojson.Feature, r reader.Reader, recursive 
 		graph.AddEdge(f_label, other_label, true, nil)
 
 		if recursive {
-			foo(graph, other, r, recursive)
+			apply_superseded_by(graph, other, r, recursive)
 		}
 	}
 
 }
 
-func bar(graph *gographviz.Graph, f geojson.Feature, r reader.Reader, recursive bool) {
+func apply_supersedes(graph *gographviz.Graph, f geojson.Feature, r reader.Reader, recursive bool) {
 
 	f_label := label(f)
 
 	for _, other_id := range whosonfirst.Supersedes(f) {
 
 		other_label := strconv.FormatInt(other_id, 10)
-		other, err := parent(r, other_id)
+		other, err := load(r, other_id)
 
 		if err != nil {
 			log.Printf("failed to load record for %d, %s\n", other_id, err)
@@ -109,10 +109,9 @@ func bar(graph *gographviz.Graph, f geojson.Feature, r reader.Reader, recursive 
 		graph.AddEdge(other_label, f_label, true, nil)
 
 		if recursive {
-			bar(graph, other, r, recursive)
+			apply_supersedes(graph, other, r, recursive)
 		}
 	}
-
 }
 
 func main() {
@@ -126,7 +125,7 @@ func main() {
 	var superseded_by = flag.Bool("superseded_by", false, "Include superseded_by relationships")
 	var supersedes = flag.Bool("supersedes", false, "Include supersedes relationships")
 
-	var recursive = flag.Bool("recursive", false, "...")
+	var recursive = flag.Bool("recursive", false, "Recursive include superseding or superseded_by relationships")
 
 	// var reader = flag.String("reader", "fs", "...")
 	var dsn = flag.String("reader-dsn", "", "...")
@@ -135,9 +134,15 @@ func main() {
 
 	flag.Parse()
 
+	r, err := fs_reader.NewFSReader(*dsn)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	graph := gographviz.NewGraph()
 
-	err := graph.SetName("G")
+	err = graph.SetName("G")
 
 	if err != nil {
 		log.Fatal(err)
@@ -150,8 +155,6 @@ func main() {
 	}
 
 	mu := new(sync.RWMutex)
-
-	var r reader.Reader
 
 	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
@@ -190,12 +193,6 @@ func main() {
 			return nil
 		}
 
-		/*
-			if whosonfirst.IsCeased(f){
-				return nil
-			}
-		*/
-
 		placetype := whosonfirst.Placetype(f)
 
 		if to_exclude.Contains(placetype) {
@@ -226,37 +223,26 @@ func main() {
 		graph.AddNode("G", f_label, nil)
 
 		if *superseded_by {
-			foo(graph, f, r, *recursive)
+			apply_superseded_by(graph, f, r, *recursive)
 		}
 
 		if *supersedes {
-			bar(graph, f, r, *recursive)
+			apply_supersedes(graph, f, r, *recursive)
 		}
 
 		parent_id := whosonfirst.ParentId(f)
 		p_label := strconv.FormatInt(parent_id, 10)
 
-		p, err := parent(r, parent_id)
+		p, err := load(r, parent_id)
 
 		if err != nil {
 			log.Printf("failed to load record for %d, %s\n", parent_id, err)
 		} else {
 			p_label = label(p)
-
-			/*
-				p_placetype := whosonfirst.Placetype(p)
-				graph.AddNode("G", p_placetype, nil)
-				graph.AddEdge(p_label, p_placetype, true, nil)
-			*/
 		}
 
 		graph.AddNode("G", p_label, nil)
 		graph.AddEdge(f_label, p_label, true, nil)
-
-		/*
-			graph.AddNode("G", placetype, nil)
-			graph.AddEdge(f_label, placetype, true, nil)
-		*/
 
 		return nil
 	}
@@ -268,14 +254,6 @@ func main() {
 	}
 
 	for _, path := range flag.Args() {
-
-		rr, err := fs_reader.NewFSReader(*dsn)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		r = rr
 
 		err = i.IndexPath(path)
 
