@@ -10,6 +10,16 @@ make bin
 
 All of this package's dependencies are bundled with the code in the `vendor` directory.
 
+## graphviz
+
+### layouts
+
+Copy/pasted from the docs
+
+```
+...
+```
+
 ## See also
 
 * https://github.com/awalterschulze/gographviz

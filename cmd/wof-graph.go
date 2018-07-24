@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/awalterschulze/gographviz"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-whosonfirst-cli/flags"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
@@ -29,7 +30,16 @@ func label(f geojson.Feature) string {
 	name := whosonfirst.Name(f)
 	wofid := whosonfirst.Id(f)
 
-	return fmt.Sprintf("\"%s (%d)\"", name, wofid)
+	str_label := fmt.Sprintf("\"%s (%d)\"", name, wofid)
+
+	rsp := gjson.GetBytes(f.Bytes(), "properties.wof:label")
+
+	if rsp.Exists() {
+
+		 str_label = fmt.Sprintf("\"%s (%d)\"", rsp.String(), wofid)
+	}
+
+	return str_label
 }
 
 func parent(r reader.Reader, id int64) (geojson.Feature, error) {
@@ -77,7 +87,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	
 	mu := new(sync.RWMutex)
 
 	var r reader.Reader
