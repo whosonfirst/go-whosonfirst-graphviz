@@ -43,8 +43,17 @@ $> dot -Kfdp -Tpng sf.dot -osf.png
 Which produces a 112MB PNG file, that is 65,000 pixels on one side, so here's the neighbourhoood of [Bernal Heights](https://spelunker.whosonfirst.org/id/85865945/descendants/?exclude=nullisland) instead:
 
 ```
-./bin/wof-graph -belongs-to 85865945 /usr/local/data/whosonfirst-data > bernal.dot
-dot -Kfdp -Tsvg bernal.dot -obernal.png
+$> ./bin/wof-graph -belongs-to 85865945 /usr/local/data/whosonfirst-data > bernal.dot
+$> dot -Kfdp -Tsvg bernal.dot -obernal.png
+```
+
+![](docs/images/20180724-bernal.png)
+
+And here's the macrohood of [Downtown San Francisco](https://spelunker.whosonfirst.org/id/1108830801/descendants/?exclude=nullisland):
+
+```
+$> ./bin/wof-graph -belongs-to 1108830801 /usr/local/data/whosonfirst-data > downtown.dot
+$> dot -Kfdp -Tpng downtown.dot -odowntown.png
 ```
 
 ![](docs/images/20180724-bernal.png)
@@ -53,6 +62,8 @@ As of this writing, the following records are not included:
 
 * Alt files
 * Records that have been deprecated
+
+Also as of this writing there is no way to add any kind of styling information.
 
 ## See also
 
