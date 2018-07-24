@@ -37,14 +37,14 @@ For example, here are all the descendants of [San Francisco](https://spelunker.w
 
 ```
 $> ./bin/wof-graph -belongs-to 85922583 /usr/local/data/whosonfirst-data > sf.dot
-$> dot -Kfdp -Tpng sf.dot -o20180724-sf.png
+$> dot -Kfdp -Tpng sf.dot -osf.png
 ```
 
 Which produces a 112MB PNG file, that is 65,000 pixels on one side, so here's the neighbourhoood of [Bernal Heights](https://spelunker.whosonfirst.org/id/85865945/descendants/?exclude=nullisland) instead:
 
 ```
 ./bin/wof-graph -belongs-to 85865945 /usr/local/data/whosonfirst-data > bernal.dot
-dot -Kfdp -Tsvg bernal.dot -obernal.png ; open bernal.png
+dot -Kfdp -Tsvg bernal.dot -obernal.png
 ```
 
 ![](docs/images/20180724-bernal.png)
