@@ -56,7 +56,7 @@ $> ./bin/wof-graph -belongs-to 1108830801 /usr/local/data/whosonfirst-data > dow
 $> dot -Kfdp -Tpng downtown.dot -odowntown.png
 ```
 
-![](docs/images/20180724-bernal.png)
+![](docs/images/20180724-downtown.png)
 
 As of this writing, the following records are not included:
 
