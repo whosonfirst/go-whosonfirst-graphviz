@@ -9,3 +9,7 @@ make bin
 ```
 
 All of this package's dependencies are bundled with the code in the `vendor` directory.
+
+## See also
+
+* https://github.com/awalterschulze/gographviz

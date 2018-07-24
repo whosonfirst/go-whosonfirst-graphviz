@@ -6,17 +6,53 @@ import (
 	"flag"
 	"fmt"
 	"github.com/awalterschulze/gographviz"
+	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-index/utils"
+	"github.com/whosonfirst/go-whosonfirst-readwrite/reader"	
+	fs_reader "github.com/whosonfirst/go-whosonfirst-readwrite-fs/reader"
+	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/warning"
 	"io"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"strconv"
 	"sync"
 )
+
+func label(f geojson.Feature) string {
+
+	name := whosonfirst.Name(f)
+	wofid := whosonfirst.Id(f)
+
+	return fmt.Sprintf("\"%s (%d)\"", name, wofid)
+}
+
+func parent(r reader.Reader, id int64) (geojson.Feature, error) {
+
+	rel_path, err := uri.Id2RelPath(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	fh, err := r.Read(rel_path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := feature.LoadWOFFeatureFromReader(fh)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
 
 func main() {
 
@@ -26,14 +62,21 @@ func main() {
 
 	graph := gographviz.NewGraph()
 
-	ast, _ := gographviz.ParseString(`digraph G {}`)
-	err := gographviz.Analyse(ast, graph)
+	err := graph.SetName("G")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = graph.SetDir(true)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	mu := new(sync.RWMutex)
+
+	var r reader.Reader
 
 	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
@@ -62,29 +105,41 @@ func main() {
 			return errors.New(msg)
 		}
 
-		name := whosonfirst.Name(f)
-		wofid := whosonfirst.Id(f)
 		parent_id := whosonfirst.ParentId(f)
-
-		str_wofid := strconv.FormatInt(wofid, 10)
-		str_parentid := strconv.FormatInt(parent_id, 10)
 
 		placetype := whosonfirst.Placetype(f)
 
-		whoami := fmt.Sprintf("\"%s (%d)\"", name, wofid)
-		
+		f_label := label(f)
+		p_label := strconv.FormatInt(parent_id, 10)
+
+		p, err := parent(r, parent_id)
+
+		if err != nil {
+			log.Printf("failed to load record for %d, %s\n", parent_id, err)
+		} else {
+			p_label = label(p)
+
+			p_placetype := whosonfirst.Placetype(p)
+
+			graph.AddNode("G", p_placetype, nil)
+			graph.AddEdge(p_label, p_placetype, true, nil)			
+		}
+
 		mu.Lock()
 		defer mu.Unlock()
 
-		graph.AddNode("G", str_wofid, nil)
-		graph.AddNode("G", whoami, nil)
-		graph.AddNode("G", str_parentid, nil)
-		graph.AddNode("G", placetype, nil)
+		graph.AddNode("G", f_label, nil)
+		graph.AddNode("G", p_label, nil)
+		graph.AddEdge(f_label, p_label, true, nil)
 
-		graph.AddEdge(whoami, str_parentid, true, nil)
-		graph.AddEdge(whoami, str_wofid, true, nil)
+		graph.AddNode("G", placetype, nil)
+		graph.AddEdge(f_label, placetype, true, nil)
 
 		return nil
+	}
+
+	if *mode != "repo" {
+		log.Fatal("Only -mode repo is supported right now, sorry.")
 	}
 
 	i, err := index.NewIndexer(*mode, cb)
@@ -95,7 +150,17 @@ func main() {
 
 	for _, path := range flag.Args() {
 
-		err := i.IndexPath(path)
+		data := filepath.Join(path, "data")
+
+		rr, err := fs_reader.NewFSReader(data)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		r = rr
+
+		err = i.IndexPath(path)
 
 		if err != nil {
 			log.Fatal(err)

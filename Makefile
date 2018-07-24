@@ -17,8 +17,11 @@ build:	fmt bin
 deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/awalterschulze/gographviz"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-index"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-readwrite-fs/..."
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-geojson-v2"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-uri"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/warning"
+	mv src/github.com/whosonfirst/go-whosonfirst-readwrite-fs/vendor/github.com/whosonfirst/go-whosonfirst-readwrite src/github.com/whosonfirst/
 
 vendor-deps: rmdeps deps
 	if test ! -d vendor; then mkdir vendor; fi
