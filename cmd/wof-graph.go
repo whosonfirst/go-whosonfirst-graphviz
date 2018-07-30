@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
 	"errors"
 	"flag"
 	"fmt"
@@ -25,7 +26,13 @@ import (
 	"sync"
 )
 
-func label(f geojson.Feature) string {
+func hex_colour(s string) string {
+
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(s)))
+	return fmt.Sprintf("#%s", hash[0:6])
+}
+
+func label(f geojson.Feature) (string, map[string]string) {
 
 	name := whosonfirst.Name(f)
 	placetype := whosonfirst.Placetype(f)
@@ -37,8 +44,45 @@ func label(f geojson.Feature) string {
 		name = rsp.String()
 	}
 
+	inception := "uuuu"
+	cessation := "uuuu"
+
+	rsp = gjson.GetBytes(f.Bytes(), "properties.edtf:inception")
+
+	if rsp.Exists() {
+		inception = rsp.String()
+	}
+
+	rsp = gjson.GetBytes(f.Bytes(), "properties.edtf:cessation")
+
+	if rsp.Exists() {
+		cessation = rsp.String()
+	}
+
+	dates := fmt.Sprintf("%s - %s", inception, cessation)
+	c := hex_colour(dates)
+
+	pc := hex_colour(placetype)
+
+	var shape string
+
+	switch placetype {
+	case "building":
+		shape = "rectangle"
+	default:
+		shape = "rectangle"
+	}
+
+	attrs := map[string]string{
+		"shape":     shape,
+		"style":     "filled",
+		"color":     fmt.Sprintf("\"%s\"", pc),
+		"fillcolor": fmt.Sprintf("\"%s\"", c),
+		"fontcolor": "\"#ffffff\"",
+	}
+
 	str_label := fmt.Sprintf("\"%s, %s / %d\"", name, placetype, wofid)
-	return str_label
+	return str_label, attrs
 }
 
 func parent(r reader.Reader, id int64) (geojson.Feature, error) {
@@ -131,15 +175,15 @@ func main() {
 		}
 
 		if d.IsTrue() && d.IsKnown() {
-		   return nil
-		}
-		
-		/*
-		if whosonfirst.IsCeased(f){
 			return nil
 		}
+
+		/*
+			if whosonfirst.IsCeased(f){
+				return nil
+			}
 		*/
-		
+
 		placetype := whosonfirst.Placetype(f)
 
 		if to_exclude.Contains(placetype) {
@@ -166,23 +210,25 @@ func main() {
 		mu.Lock()
 		defer mu.Unlock()
 
-		f_label := label(f)
-		graph.AddNode("G", f_label, nil)
+		f_label, f_attrs := label(f)
+		graph.AddNode("G", f_label, f_attrs)
 
 		if *superseded_by {
 
 			for _, other_id := range whosonfirst.SupersededBy(f) {
 
 				other_label := strconv.FormatInt(other_id, 10)
+				other_attrs := make(map[string]string)
+
 				other, err := parent(r, other_id)
 
 				if err != nil {
 					log.Printf("failed to load record for %d, %s\n", other_id, err)
 				} else {
 
-					other_label = label(other)
+					other_label, other_attrs = label(other)
 
-					graph.AddNode("G", other_label, nil)
+					graph.AddNode("G", other_label, other_attrs)
 					graph.AddEdge(f_label, other_label, true, nil)
 				}
 			}
@@ -193,15 +239,17 @@ func main() {
 			for _, other_id := range whosonfirst.Supersedes(f) {
 
 				other_label := strconv.FormatInt(other_id, 10)
+				other_attrs := make(map[string]string)
+
 				other, err := parent(r, other_id)
 
 				if err != nil {
 					log.Printf("failed to load record for %d, %s\n", other_id, err)
 				} else {
 
-					other_label = label(other)
+					other_label, other_attrs = label(other)
 
-					graph.AddNode("G", other_label, nil)
+					graph.AddNode("G", other_label, other_attrs)
 					graph.AddEdge(other_label, f_label, true, nil)
 				}
 			}
@@ -209,28 +257,18 @@ func main() {
 
 		parent_id := whosonfirst.ParentId(f)
 		p_label := strconv.FormatInt(parent_id, 10)
+		p_attrs := make(map[string]string)
 
 		p, err := parent(r, parent_id)
 
 		if err != nil {
 			log.Printf("failed to load record for %d, %s\n", parent_id, err)
 		} else {
-			p_label = label(p)
-
-			/*
-				p_placetype := whosonfirst.Placetype(p)
-				graph.AddNode("G", p_placetype, nil)
-				graph.AddEdge(p_label, p_placetype, true, nil)
-			*/
+			p_label, p_attrs = label(p)
 		}
 
-		graph.AddNode("G", p_label, nil)
+		graph.AddNode("G", p_label, p_attrs)
 		graph.AddEdge(f_label, p_label, true, nil)
-
-		/*
-			graph.AddNode("G", placetype, nil)
-			graph.AddEdge(f_label, placetype, true, nil)
-		*/
 
 		return nil
 	}
