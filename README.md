@@ -19,7 +19,7 @@ All of this package's dependencies are bundled with the code in the `vendor` dir
 Generate a `dot` file from a collection of Who's On First documents.
 
 ```
-./bin/wof-graph -h
+$> ./bin/wof-graph -h
 Usage of ./bin/wof-graph:
   -belongs-to value
     	One or more WOF ID that a record should belong to
@@ -27,6 +27,8 @@ Usage of ./bin/wof-graph:
     	One or more placetypes to exclude
   -mode string
     	Currently only '-mode repo' is supported (default "repo")
+  -source value
+    	One or more filesystem based sources to use to read WOF ID data, which may or may not be part of the sources to graph. This is work in progress.
   -superseded_by
     	Include superseded_by relationships
   -supersedes
@@ -36,14 +38,14 @@ Usage of ./bin/wof-graph:
 For example, here are all the descendants of [San Francisco](https://spelunker.whosonfirst.org/id/85922583/descendants/?exclude=nullisland):
 
 ```
-$> ./bin/wof-graph -belongs-to 85922583 /usr/local/data/whosonfirst-data > sf.dot
+$> ./bin/wof-graph -source /usr/local/data/whosonfirst-data -belongs-to 85922583 /usr/local/data/whosonfirst-data > sf.dot
 $> dot -Kfdp -Tpng sf.dot -osf.png
 ```
 
 Which produces a 112MB PNG file, that is 65,000 pixels on one side, so here's the neighbourhoood of [Bernal Heights](https://spelunker.whosonfirst.org/id/85865945/descendants/?exclude=nullisland) instead:
 
 ```
-$> ./bin/wof-graph -belongs-to 85865945 /usr/local/data/whosonfirst-data > bernal.dot
+$> ./bin/wof-graph -source /usr/local/data/whosonfirst-data -belongs-to 85865945 /usr/local/data/whosonfirst-data > bernal.dot
 $> dot -Kfdp -Tsvg bernal.dot -obernal.png
 ```
 

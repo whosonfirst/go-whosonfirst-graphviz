@@ -20,7 +20,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"path/filepath"
+	_ "path/filepath"
 	"strconv"
 	"sync"
 )
@@ -109,6 +109,9 @@ func parent(r reader.Reader, id int64) (geojson.Feature, error) {
 
 func main() {
 
+	var sources flags.MultiString
+	flag.Var(&sources, "source", "One or more filesystem based sources to use to read WOF ID data, which may or may not be part of the sources to graph. This is work in progress.")
+
 	var to_exclude flags.MultiString
 	flag.Var(&to_exclude, "exclude", "One or more placetypes to exclude")
 
@@ -122,9 +125,15 @@ func main() {
 
 	flag.Parse()
 
+	r, err := reader.NewMultiReaderFromStrings(sources...)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	graph := gographviz.NewGraph()
 
-	err := graph.SetName("G")
+	err = graph.SetName("G")
 
 	if err != nil {
 		log.Fatal(err)
@@ -137,8 +146,6 @@ func main() {
 	}
 
 	mu := new(sync.RWMutex)
-
-	var r reader.Reader
 
 	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
@@ -283,16 +290,6 @@ func main() {
 	}
 
 	for _, path := range flag.Args() {
-
-		data := filepath.Join(path, "data")
-
-		rr, err := reader.NewFSReader(data)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		r = rr
 
 		err = i.IndexPath(path)
 

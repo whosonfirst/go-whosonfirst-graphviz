@@ -15,6 +15,29 @@ type MultiReader struct {
 	mu      *sync.RWMutex
 }
 
+// something something something a callback function or
+// map to invoke a dsn specific NewSomethingReader method
+// but not today... today it's only FS readers...
+// (20180807/thisisaaronland)
+
+func NewMultiReaderFromStrings(dsn_strings ...string) (Reader, error) {
+
+	readers := make([]Reader, 0)
+
+	for _, dsn := range dsn_strings {
+
+		r, err := NewFSReader(dsn)
+
+		if err != nil {
+			return nil, err
+		}
+
+		readers = append(readers, r)
+	}
+
+	return NewMultiReader(readers...)
+}
+
 func NewMultiReader(readers ...Reader) (Reader, error) {
 
 	lookup := make(map[string]int)
