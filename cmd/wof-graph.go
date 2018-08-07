@@ -14,7 +14,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-index/utils"
-	fs_reader "github.com/whosonfirst/go-whosonfirst-readwrite-fs/reader"
 	"github.com/whosonfirst/go-whosonfirst-readwrite/reader"
 	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/warning"
@@ -287,7 +286,7 @@ func main() {
 
 		data := filepath.Join(path, "data")
 
-		rr, err := fs_reader.NewFSReader(data)
+		rr, err := reader.NewFSReader(data)
 
 		if err != nil {
 			log.Fatal(err)
