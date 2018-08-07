@@ -1,7 +1,7 @@
 package reader
 
 import (
-	"github.com/whosonfirst/go-whosonfirst-readwrite/bytes"
+	"github.com/whosonfirst/go-whosonfirst-readwrite/utils"
 	"io"
 )
 
@@ -17,9 +17,9 @@ func NewNullReader() (Reader, error) {
 
 func (r *NullReader) Read(uri string) (io.ReadCloser, error) {
 
-	return bytes.ReadCloserFromBytes([]byte(uri))
+	return utils.ReadCloserFromBytes([]byte(uri))
 }
 
 func (r *NullReader) URI(uri string) string {
-     return uri
+	return uri
 }

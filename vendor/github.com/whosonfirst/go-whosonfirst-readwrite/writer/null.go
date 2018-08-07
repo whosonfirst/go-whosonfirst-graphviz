@@ -21,5 +21,5 @@ func (w *NullWriter) Write(path string, fh io.ReadCloser) error {
 }
 
 func (w *NullWriter) URI(path string) string {
-     return "/dev/null"
+	return "/dev/null"
 }

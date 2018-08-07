@@ -19,18 +19,7 @@ make bin
 
 All of this package's dependencies are bundled with the code in the `vendor` directory.
 
-## Example
-
-```
-./bin/wof-reader -cache memcache -cache-arg Hosts=127.0.0.1:11211 -fs-root /usr/local/data/whosonfirst-data/data/ -debug 0/0.geojson
-2017/12/29 16:58:08 GET 0/0.geojson <nil>
-2017/12/29 16:58:08 HIT 0/0.geojson
-2017/12/29 16:58:08 0/0.geojson true
-2017/12/29 16:58:08 GET 0/0.geojson <nil>
-2017/12/29 16:58:08 HIT 0/0.geojson
-```
-
-## Caches
+## Interfaces
 
 ```
 type Cache interface {
@@ -44,14 +33,6 @@ type Cache interface {
 }
 ```
 
-### bigcache
-
-### gocache
-
-### lru
-
-### memcache
-
 ## Readers
 
 ```
@@ -59,16 +40,6 @@ type Reader interface {
 	Read(string) (io.ReadCloser, error)
 }
 ```
-
-### fs
-
-### github
-
-### http
-
-### null
-
-### s3
 
 ## Writers
 
@@ -78,19 +49,13 @@ type Writer interface {
 }
 ```
 
-## fs
-
-### multi
-
-### null
-
-### s3
-
-### stdout
-
-## Permissions
-
-_Please write me_
-
 ## See also
 
+* https://github.com/whosonfirst/go-whosonfirst-readwrite-http
+* https://github.com/whosonfirst/go-whosonfirst-readwrite-mysql
+* https://github.com/whosonfirst/go-whosonfirst-readwrite-github
+* https://github.com/whosonfirst/go-whosonfirst-readwrite-sqlite
+* https://github.com/whosonfirst/go-whosonfirst-readwrite-s3
+* https://github.com/whosonfirst/go-whosonfirst-cache
+* https://github.com/whosonfirst/go-whosonfirst-cache-bigcache
+* https://github.com/whosonfirst/go-whosonfirst-cache-s3
